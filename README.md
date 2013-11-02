@@ -1,4 +1,4 @@
 Graph-Algorithms
 ================
 
-Implementation of an adjacency list and some common graph algorithms in C++
+Implementation of a graph data structure (adjacency list), and some common graph algorithms in C++
