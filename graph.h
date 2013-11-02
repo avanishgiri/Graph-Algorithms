@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include <queue>
 #include <stack>
 #define MAXV 1000
@@ -11,17 +10,26 @@ enum {WHITE, BLACK};
 
 using namespace std;
 
+typedef struct edgepair {
+	int x;
+	int y;
+	int weight;
+} edgepair;
+
 class Graph;
 
 class EdgeNode {
 private:
 	friend class Graph;
-	int y;
-	int weight;
 	EdgeNode *next;
 public:
+	int y;
+	int weight;
 	EdgeNode(int y, int weight, EdgeNode *next);
+	EdgeNode();
 };
+
+
 
 class Graph {
 private:
@@ -45,17 +53,18 @@ public:
 	void print();
 	void bfs(int start);
 	void bfs_worker(int start, void(*process_vertex_early)(int v), 
-				void(*process_vertex_late)(int v), void(*process_edge)(int v, int y));
+				void(*process_vertex_late)(int v), void(*process_edge)(int v, EdgeNode *p));
 	void prepare_search();
 	void dfs(int start);
 	void dfs_worker(int start, void(*process_vertex_early)(int v), 
-				void(*process_vertex_late)(int v), void(*process_edge)(int v, int y));
+				void(*process_vertex_late)(int v), void(*process_edge)(int v, EdgeNode *p));
 	void topsort();
 	int edge_classification(int x, int y);
 	void find_path(int y);
 	void shortest_path(int v, int y);
 	void twocolor();
 	void connected_components();
-	static void color_edge(int v, int y);
+	static void color_edge(int v, EdgeNode *p);
 	static void push_stack(int v);
+	void kruskal();
 };

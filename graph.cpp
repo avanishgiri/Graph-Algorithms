@@ -1,4 +1,6 @@
 #include "graph.h"
+#include "disjoint_sets.h"
+#include "priority_queue.h"
 
 bool *Graph::discovered = new bool[MAXV + 1];
 bool *Graph::processed = new bool[MAXV + 1];
@@ -17,35 +19,41 @@ void print_vertex(int v){
 	cout << v << " " << endl;
 }
 
-void print_edge(int v, int y){
-	cout << v << " " << y << endl;
+void print_edge(int v, EdgeNode *p){
+	cout << v << " " << p->y << endl;
 }
 
 void do_nothing(int v = -1){
 }
 
-void do_nothing(int v = -1, int y = -1){
-}
+void do_nothing(int v, EdgeNode *p){}
 
-void Graph::color_edge(int v, int y){
-	if(color[v] == color[y]){
+void Graph::color_edge(int v, EdgeNode *p){
+	if(color[v] == color[p->y]){
 		bipartite = FALSE;
-		cout << "Not bipartite due to " << v <<"," << y << endl;
+		cout << "Not bipartite due to " << v <<"," << p->y << endl;
 	}
 
-	color[y] = color[v] == WHITE ? BLACK : WHITE;
+	color[p->y] = color[v] == WHITE ? BLACK : WHITE;
 }
 
 void Graph::push_stack(int v){
 	lifo->push(v);
 }
 /* END CALLBACKS*/
+bool lower_weight(edgepair *x, edgepair *y){
+	return x->weight < y->weight;
+}
+
+PriorityQueue<edgepair*> min_heap(&(lower_weight));
 
 EdgeNode::EdgeNode(int y, int weight, EdgeNode *next){
 	this->y = y;
 	this->weight = weight;
 	this->next = next;
 }
+
+EdgeNode::EdgeNode(){}
 
 Graph::Graph(bool directed){
 	for(int i = 1; i <= MAXV+1; i++){
@@ -99,7 +107,7 @@ void Graph::dfs(int start){
 }
 
 void Graph::bfs_worker(int start, void(*process_vertex_early)(int v), 
-				void(*process_vertex_late)(int v), void(*process_edge)(int v, int y))
+				void(*process_vertex_late)(int v), void(*process_edge)(int v, EdgeNode *p))
 {
 	queue<int> q;
 	int v;
@@ -118,7 +126,7 @@ void Graph::bfs_worker(int start, void(*process_vertex_early)(int v),
 		while(p){
 			y = p->y;
 			if(processed[y] == FALSE || this->directed)
-				process_edge(v,y);
+				process_edge(v,p);
 			if(discovered[y] == FALSE){
 				q.push(y);
 				discovered[y] = TRUE;
@@ -131,7 +139,7 @@ void Graph::bfs_worker(int start, void(*process_vertex_early)(int v),
 }
 
 void Graph::dfs_worker(int v, void(*process_vertex_early)(int v), 
-				void(*process_vertex_late)(int v), void(*process_edge)(int v, int y))
+				void(*process_vertex_late)(int v), void(*process_edge)(int v,EdgeNode *p))
 {
 	EdgeNode *p;
 	int y;
@@ -150,11 +158,11 @@ void Graph::dfs_worker(int v, void(*process_vertex_early)(int v),
 		y = p->y;
 		if(!discovered[y]){
 			parent[y] = v;
-			process_edge(v,y);
+			process_edge(v,p);
 			dfs_worker(y,process_vertex_early, process_vertex_late, process_edge);
 		}
 		else if( (!processed[y] && parent[v] != y) || (this->directed)){
-			process_edge(v,y);
+			process_edge(v,p);
 		}
 		if(finished) return;
 		p = p->next;
@@ -230,5 +238,40 @@ void Graph::connected_components(){
 			cout << "Component" << c << ":" << endl;
 			bfs_worker(i, &(do_nothing), &(print_vertex), &(do_nothing));
 		}
+	}
+}
+
+void insert_edge_to_heap(int v, EdgeNode *p){
+	edgepair *ep = new edgepair;
+	ep->x = v;
+	ep->y = p->y;
+	ep->weight = p->weight;
+	min_heap.insert(ep);
+}
+
+void Graph::kruskal(){
+	DisjointSets trees(nvertices);
+	prepare_search();
+	bfs_worker(1, &(do_nothing),&(do_nothing),&(insert_edge_to_heap));
+	edgepair *p;
+	int x, y;
+	vector<edgepair*> spanning_tree;
+	while(!min_heap.empty()){
+		p = min_heap.remove_top();
+		x = p->x;
+		y = p->y;
+		int root1 = trees.find(x);
+		int root2 = trees.find(y);
+		if(root1 == root2)
+			continue;
+		else{
+			spanning_tree.push_back(p);
+			trees.sets_union(root1,root2);
+		}
+	}
+
+	for(vector<edgepair*>::iterator it = spanning_tree.begin();
+		it != spanning_tree.end(); it++){
+		cout << (*it)->x << ", " << (*it)->y << " -- " << (*it)->weight << endl;
 	}
 }
